@@ -8,6 +8,7 @@ use scraper::node::Node;
 use scraper::{ElementRef, Html};
 
 use crate::context::Context;
+use crate::dom;
 use crate::escape;
 use crate::options::Options;
 use crate::whitespace;
@@ -345,6 +346,11 @@ impl Converter {
             return;
         };
         for child in node_ref.children() {
+            // Drop whitespace-only text adjacent to block-level elements —
+            // it carries no rendered content (mirrors browser rendering).
+            if !ctx.in_pre() && Self::is_inter_block_whitespace(&child, tag) {
+                continue;
+            }
             self.write_node(child.id(), document, ctx, buf);
         }
 
@@ -383,5 +389,32 @@ impl Converter {
         }
 
         // No rule matched — children already written as transparent passthrough.
+    }
+
+    /// Returns `true` for whitespace-only text nodes adjacent to a
+    /// block-level sibling, or padding at the start/end of a block parent.
+    fn is_inter_block_whitespace(child: &ego_tree::NodeRef<'_, Node>, parent_tag: &str) -> bool {
+        let Node::Text(text) = child.value() else {
+            return false;
+        };
+        if !text.trim().is_empty() {
+            return false;
+        }
+
+        let sibling_is_block = |sib: Option<ego_tree::NodeRef<'_, Node>>| {
+            sib.is_some_and(|s| {
+                s.value()
+                    .as_element()
+                    .is_some_and(|el| dom::is_block_tag(el.name()))
+            })
+        };
+
+        if dom::is_block_tag(parent_tag)
+            && (child.prev_sibling().is_none() || child.next_sibling().is_none())
+        {
+            return true;
+        }
+
+        sibling_is_block(child.prev_sibling()) || sibling_is_block(child.next_sibling())
     }
 }

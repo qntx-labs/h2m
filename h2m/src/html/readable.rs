@@ -70,6 +70,7 @@ const MAIN_CONTENT_SELECTORS: &[&str] = &[
     "article",
     "[role=\"main\"]",
     "main",
+    "#main",
     ".post-content",
     ".entry-content",
     "#content",

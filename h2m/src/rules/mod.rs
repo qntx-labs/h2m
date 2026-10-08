@@ -2,6 +2,7 @@
 
 mod blockquote;
 mod code_block;
+mod definition_list;
 mod emphasis;
 mod heading;
 mod horizontal_rule;
@@ -13,6 +14,7 @@ mod link;
 mod list;
 mod paragraph;
 mod strong;
+mod table;
 
 use crate::converter::{ConverterBuilder, Plugin};
 
@@ -76,8 +78,8 @@ mod tests {
 /// tags.
 ///
 /// This plugin handles headings, paragraphs, emphasis, strong, inline code,
-/// code blocks, links, images, lists, blockquotes, horizontal rules, and
-/// line breaks.
+/// code blocks, links, images, lists, blockquotes, horizontal rules, line
+/// breaks, definition lists, and a plain-text table fallback.
 #[derive(Debug, Clone, Copy)]
 pub struct CommonMark;
 
@@ -89,6 +91,10 @@ impl Plugin for CommonMark {
         builder.add_rule(blockquote::Blockquote);
         builder.add_rule(list::List);
         builder.add_rule(list::ListItem);
+        builder.add_rule(definition_list::DefinitionTerm);
+        builder.add_rule(definition_list::DefinitionDescription);
+        builder.add_rule(table::TableRow);
+        builder.add_rule(table::TableCell);
         builder.add_rule(horizontal_rule::HorizontalRule);
         builder.add_rule(line_break::LineBreak);
         builder.add_rule(strong::Strong);

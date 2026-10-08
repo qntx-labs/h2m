@@ -6,14 +6,14 @@ use crate::context::Context;
 use crate::converter::{Action, Rule};
 
 /// Handles `<p>`, `<div>`, `<section>`, `<article>`, `<main>`, `<header>`,
-/// `<footer>`, and `<nav>` elements.
+/// `<footer>`, `<nav>`, `<dl>`, and `<table>` elements.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Paragraph;
 
 impl Rule for Paragraph {
     fn tags(&self) -> &'static [&'static str] {
         &[
-            "p", "div", "section", "article", "main", "header", "footer", "nav",
+            "p", "div", "section", "article", "main", "header", "footer", "nav", "dl", "table",
         ]
     }
 

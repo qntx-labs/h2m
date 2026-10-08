@@ -4,6 +4,53 @@ use ego_tree::NodeRef;
 use scraper::ElementRef;
 use scraper::node::Node;
 
+/// HTML tags treated as block-level for whitespace handling.
+const BLOCK_TAGS: &[&str] = &[
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "div",
+    "section",
+    "article",
+    "main",
+    "aside",
+    "header",
+    "footer",
+    "nav",
+    "address",
+    "ul",
+    "ol",
+    "li",
+    "dl",
+    "dt",
+    "dd",
+    "blockquote",
+    "pre",
+    "hr",
+    "figure",
+    "figcaption",
+    "details",
+    "summary",
+    "table",
+    "caption",
+    "thead",
+    "tbody",
+    "tfoot",
+    "tr",
+    "td",
+    "th",
+];
+
+/// Returns `true` if the tag is a block-level element.
+#[must_use]
+pub(crate) fn is_block_tag(tag: &str) -> bool {
+    BLOCK_TAGS.contains(&tag)
+}
+
 /// Returns the length of the longest consecutive run of `needle` in `text`.
 #[inline]
 pub(crate) fn max_consecutive_char(text: &str, needle: char) -> usize {
@@ -161,5 +208,19 @@ mod tests {
     #[test]
     fn max_consecutive_at_boundaries() {
         assert_eq!(max_consecutive_char("``hello``", '`'), 2);
+    }
+
+    #[test]
+    fn block_tag_matches_known_tags() {
+        assert!(is_block_tag("p"));
+        assert!(is_block_tag("tr"));
+        assert!(is_block_tag("h3"));
+    }
+
+    #[test]
+    fn block_tag_rejects_inline_tags() {
+        assert!(!is_block_tag("a"));
+        assert!(!is_block_tag("span"));
+        assert!(!is_block_tag("em"));
     }
 }

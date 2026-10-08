@@ -85,3 +85,34 @@ fn readable_content_prefers_article_over_noise_strip() {
     assert_eq!(result, "<p>article</p>");
     assert!(!result.contains("other"));
 }
+
+#[test]
+fn readable_content_matches_non_semantic_id_main() {
+    let html = "<div id='sidenav'><a href='/a'>Tutorial index</a></div>\
+                <div class='w3-col' id='main'><h1>Title</h1><p>Body</p></div>";
+    let result = h2m::html::readable_content(html);
+    assert_eq!(result, "<h1>Title</h1><p>Body</p>");
+    assert!(
+        !result.contains("Tutorial index"),
+        "non-semantic sidebar div should not survive #main extraction"
+    );
+}
+
+#[test]
+fn detect_main_content_finds_id_main() {
+    let html = "<div id=\"main\"><p>Body</p></div>";
+    assert_eq!(
+        h2m::html::detect_main_content(html).as_deref(),
+        Some("<p>Body</p>")
+    );
+}
+
+#[test]
+fn readable_content_prefers_semantic_main_over_id_main() {
+    let html = "<div id=\"main\"><p>wrapper</p></div><article><p>article</p></article>";
+    let result = h2m::html::readable_content(html);
+    assert_eq!(
+        result, "<p>article</p>",
+        "semantic selectors must keep priority over the #main id fallback"
+    );
+}

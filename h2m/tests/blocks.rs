@@ -163,3 +163,77 @@ fn code_block_class_fallback_to_first_class() {
         "```ruby\nputs 1\n```"
     );
 }
+
+#[test]
+fn definition_list_single_entry() {
+    assert_eq!(
+        convert("<dl><dt>as</dt><dd>Return a value from a function.</dd></dl>"),
+        "as\n:   Return a value from a function."
+    );
+}
+
+#[test]
+fn definition_list_multiple_entries() {
+    assert_eq!(
+        convert("<dl><dt>as</dt><dd>Return a value.</dd><dt>async</dt><dd>Async blocks.</dd></dl>"),
+        "as\n:   Return a value.\n\nasync\n:   Async blocks."
+    );
+}
+
+#[test]
+fn definition_list_with_whitespace_between_tags() {
+    assert_eq!(
+        convert("<dl>\n  <dt>as</dt>\n  <dd>Return a value.</dd>\n</dl>"),
+        "as\n:   Return a value."
+    );
+}
+
+#[test]
+fn definition_list_inline_markup_in_term() {
+    assert_eq!(
+        convert(r#"<dl><dt><a href="https://example.com">term</a></dt><dd>desc</dd></dl>"#),
+        "[term](https://example.com)\n:   desc"
+    );
+}
+
+#[test]
+fn definition_list_empty_entries_skipped() {
+    assert_eq!(convert("<dl><dt></dt><dd></dd></dl>"), "");
+}
+
+#[test]
+fn definition_list_multiline_description_indents_continuation() {
+    assert_eq!(
+        convert("<dl><dt>term</dt><dd><p>line1</p><p>line2</p></dd></dl>"),
+        "term\n:   line1\n\n    line2"
+    );
+}
+
+#[test]
+fn list_with_whitespace_between_tags() {
+    assert_eq!(
+        convert("<ul>\n  <li>one</li>\n  <li>two</li>\n</ul>"),
+        "- one\n- two"
+    );
+}
+
+#[test]
+fn paragraph_padding_whitespace_stripped() {
+    assert_eq!(convert("<p> <b>x</b> </p>"), "**x**");
+}
+
+#[test]
+fn definition_list_one_term_multiple_descriptions() {
+    assert_eq!(
+        convert("<dl><dt>term</dt><dd>def1</dd><dd>def2</dd></dl>"),
+        "term\n:   def1\n:   def2"
+    );
+}
+
+#[test]
+fn inline_whitespace_between_spans_preserved() {
+    assert_eq!(
+        convert("<p><span>hello</span> <span>world</span></p>"),
+        "hello world"
+    );
+}
