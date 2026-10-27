@@ -308,7 +308,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/html"))
-            .respond_with(ResponseTemplate::new(202))
+            .respond_with(ResponseTemplate::new(202).set_body_string(SAMPLE_HTML))
             .mount(&server)
             .await;
         Mock::given(method("POST"))
@@ -330,7 +330,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/"))
-            .respond_with(ResponseTemplate::new(202))
+            .respond_with(ResponseTemplate::new(202).set_body_string(SAMPLE_HTML))
             .mount(&server)
             .await;
 

@@ -99,7 +99,7 @@ pub(super) async fn post_html(
         .await
         .map_err(|e| classify_transport(PROVIDER_ID, &e))?;
 
-    finalize_body(response).await
+    finalize_body(http, response).await
 }
 
 /// POSTs a search request to the lite.duckduckgo.com endpoint.
@@ -130,25 +130,22 @@ pub(super) async fn post_lite(
         .await
         .map_err(|e| classify_transport(PROVIDER_ID, &e))?;
 
-    finalize_body(response).await
+    finalize_body(http, response).await
 }
 
 /// Reads the response body, classifying non-success statuses, 202-soft-blocks,
 /// and CAPTCHA challenge pages into structured errors.
-async fn finalize_body(response: Response) -> Result<String, SearchError> {
+async fn finalize_body(http: &HttpConfig, response: Response) -> Result<String, SearchError> {
+    // DuckDuckGo uses a successful HTTP status for challenges, regardless of body shape.
+    if response.status() == reqwest::StatusCode::ACCEPTED {
+        return Err(SearchError::CaptchaDetected {
+            provider: PROVIDER_ID,
+        });
+    }
     if !response.status().is_success() {
-        // 202 with empty body is DDG's classic soft-block signal.
-        if response.status().as_u16() == 202 {
-            return Err(SearchError::CaptchaDetected {
-                provider: PROVIDER_ID,
-            });
-        }
         return Err(classify_status(PROVIDER_ID, &response));
     }
-    let body = response.text().await.map_err(|e| SearchError::Transport {
-        provider: PROVIDER_ID,
-        message: format!("failed to read body: {e}"),
-    })?;
+    let body = http.read_text(PROVIDER_ID, response).await?;
     if looks_like_captcha(&body) {
         return Err(SearchError::CaptchaDetected {
             provider: PROVIDER_ID,

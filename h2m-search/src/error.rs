@@ -71,6 +71,15 @@ pub enum SearchError {
         message: String,
     },
 
+    /// Response exceeded the configured decoded body size limit. Not retryable.
+    #[error("{provider} response exceeds {limit_bytes} bytes")]
+    ResponseTooLarge {
+        /// Provider identifier.
+        provider: &'static str,
+        /// Maximum permitted response size in bytes.
+        limit_bytes: usize,
+    },
+
     /// HTML scraping detected an anti-bot challenge (e.g. `DuckDuckGo` CAPTCHA).
     ///
     /// Retryable: callers can back off and try again with rotated UA or a
@@ -117,6 +126,7 @@ impl SearchError {
             | Self::AuthFailed { provider, .. }
             | Self::MissingApiKey { provider, .. }
             | Self::InvalidResponse { provider, .. }
+            | Self::ResponseTooLarge { provider, .. }
             | Self::CaptchaDetected { provider }
             | Self::ParseFailed { provider, .. } => Some(provider),
             Self::MissingSearxngUrl | Self::ProviderUnavailable { .. } | Self::Config { .. } => {
@@ -146,6 +156,7 @@ impl SearchError {
             Self::MissingApiKey { .. } => "missingApiKey",
             Self::MissingSearxngUrl => "missingSearxngUrl",
             Self::InvalidResponse { .. } => "invalidResponse",
+            Self::ResponseTooLarge { .. } => "responseTooLarge",
             Self::CaptchaDetected { .. } => "captchaDetected",
             Self::ParseFailed { .. } => "parseFailed",
             Self::ProviderUnavailable { .. } => "providerUnavailable",
@@ -180,6 +191,9 @@ impl Serialize for SearchError {
         }
         if let Some(s) = self.status() {
             map.serialize_entry("status", &s)?;
+        }
+        if let Self::ResponseTooLarge { limit_bytes, .. } = self {
+            map.serialize_entry("limitBytes", limit_bytes)?;
         }
         map.end()
     }

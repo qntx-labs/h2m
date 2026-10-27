@@ -16,15 +16,18 @@
 
 // dev-deps of the host crate get linked into integration tests by default;
 // silence the `unused-crate-dependencies` lint by declaring them explicitly.
+#[cfg(any(feature = "brave", feature = "searxng"))]
 use std::time::Duration;
 
 #[cfg(feature = "brave")]
 use h2m_search::Brave;
+#[cfg(any(feature = "brave", feature = "searxng"))]
+use h2m_search::RetryPolicy;
 #[cfg(feature = "searxng")]
 use h2m_search::SearXNG;
-use h2m_search::{HttpConfig, RetryPolicy, SearchClient, SearchError, SearchQuery, SecretString};
+use h2m_search::{HttpConfig, SearchClient, SearchError, SearchQuery, SecretString};
 use insta as _;
-#[cfg(any(feature = "duckduckgo", feature = "wikipedia"))]
+#[cfg(feature = "wikipedia")]
 use percent_encoding as _;
 use pretty_assertions as _;
 use reqwest as _;
@@ -35,8 +38,74 @@ use thiserror as _;
 use tokio as _;
 use tracing as _;
 use url as _;
-use wiremock::matchers::{any, header, method, path};
+#[cfg(all(feature = "brave", feature = "searxng"))]
+use wiremock::matchers::header;
+use wiremock::matchers::path;
+#[cfg(any(feature = "brave", feature = "searxng"))]
+use wiremock::matchers::{any, method};
 use wiremock::{Mock, MockServer, ResponseTemplate};
+
+/// An oversized HTML result fails without falling back or retrying.
+#[cfg(feature = "duckduckgo")]
+#[tokio::test]
+async fn duckduckgo_respects_host_response_limit() {
+    let server = MockServer::start().await;
+    Mock::given(path("/html"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("x".repeat(1024)))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(path("/lite"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&server)
+        .await;
+    let http = HttpConfig::new().unwrap().with_max_response_bytes(512);
+    let provider = h2m_search::DuckDuckGo::builder()
+        .http(http)
+        .html_endpoint(format!("{}/html", server.uri()))
+        .lite_endpoint(format!("{}/lite", server.uri()))
+        .build()
+        .unwrap();
+    let error = provider
+        .search(&SearchQuery::new("rust"))
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        SearchError::ResponseTooLarge {
+            provider: "duckduckgo",
+            limit_bytes: 512
+        }
+    ));
+}
+
+/// JSON providers use the same host limit through the public client builder.
+#[cfg(feature = "searxng")]
+#[tokio::test]
+async fn json_search_respects_host_response_limit_without_retry() {
+    let server = MockServer::start().await;
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200).set_body_string(" ".repeat(1024)))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let http = HttpConfig::new().unwrap().with_max_response_bytes(512);
+    let client = SearchClient::builder()
+        .provider("searxng")
+        .searxng_url(server.uri())
+        .http(http)
+        .build()
+        .unwrap();
+    let error = client.search(&SearchQuery::new("rust")).await.unwrap_err();
+    assert!(matches!(
+        error,
+        SearchError::ResponseTooLarge {
+            provider: "searxng",
+            limit_bytes: 512
+        }
+    ));
+}
 
 /// `SearchClient::builder()` resolves an unknown provider to a dedicated
 /// [`SearchError::ProviderUnavailable`] variant instead of a transport error.

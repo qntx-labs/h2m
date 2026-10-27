@@ -69,14 +69,6 @@ pub(crate) fn classify_transport(provider: &'static str, err: &reqwest::Error) -
     }
 }
 
-/// Maps a deserialisation failure to [`SearchError::InvalidResponse`].
-pub(crate) fn classify_parse(provider: &'static str, err: &reqwest::Error) -> SearchError {
-    SearchError::InvalidResponse {
-        provider,
-        message: err.to_string(),
-    }
-}
-
 /// Parses the `Retry-After` header into a [`Duration`].
 ///
 /// The header can be either a number of seconds or an HTTP-date. We only

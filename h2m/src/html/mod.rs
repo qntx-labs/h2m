@@ -52,7 +52,10 @@ mod tests {
 
     #[test]
     fn links_empty_href_excluded() {
-        assert!(extract_links(r#"<a href="">empty</a>"#).is_empty());
+        assert_eq!(
+            extract_links(r#"<a href="">empty</a>"#),
+            Vec::<String>::new()
+        );
     }
 
     #[test]

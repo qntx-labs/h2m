@@ -10,7 +10,7 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use super::common::{classify_parse, classify_status, classify_transport};
+use super::common::{classify_status, classify_transport};
 use crate::error::SearchError;
 use crate::http::HttpConfig;
 use crate::query::{SearchQuery, SearchSource, TimeRange};
@@ -185,10 +185,7 @@ impl Tavily {
         if !response.status().is_success() {
             return Err(classify_status(PROVIDER_ID, &response));
         }
-        response
-            .json::<TavilyResponse>()
-            .await
-            .map_err(|e| classify_parse(PROVIDER_ID, &e))
+        self.http.read_json(PROVIDER_ID, response).await
     }
 }
 

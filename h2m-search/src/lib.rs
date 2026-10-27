@@ -73,7 +73,7 @@ pub use client::ENV_SEARXNG_URL;
 pub use client::ENV_TAVILY_API_KEY;
 pub use client::{ENV_PROVIDER, ProviderId, SearchClient, SearchClientBuilder};
 pub use error::SearchError;
-pub use http::{DEFAULT_TIMEOUT, HttpConfig, USER_AGENT};
+pub use http::{DEFAULT_MAX_RESPONSE_BYTES, DEFAULT_TIMEOUT, HttpConfig, USER_AGENT};
 #[cfg(test)]
 use insta as _;
 #[cfg(test)]
